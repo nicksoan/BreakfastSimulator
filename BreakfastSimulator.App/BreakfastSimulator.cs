@@ -24,21 +24,26 @@ namespace BreakfastSimulator.App
         public async Task PrepareBreakfast()
         {
             int maxPreparationTime = _selectedItems.Max(item => item.PreparationTime);
-            var preparationTasks = _selectedItems.Select(item => StartPreparing(item, maxPreparationTime));
-            await Task.WhenAll(preparationTasks);
-            Console.WriteLine("All breakfast items are ready!");
-        }
+            var preparationTasks = new List<Task>();
 
-        private async Task StartPreparing(IBreakfastItem item, int maxPreparationTime)
-        {
-            int delayStart = maxPreparationTime - item.PreparationTime;
-            if (delayStart > 0)
+            foreach (var item in _selectedItems)
             {
-                Console.WriteLine($"Waiting to start {item.Name} in {delayStart} seconds.");
-                await Task.Delay(delayStart * 1000);
+                int delayStart = maxPreparationTime - item.PreparationTime;
+                var preparationTask = Task.Run(async () =>
+                {
+                    if (delayStart > 0)
+                    {
+                        Console.WriteLine($"Waiting to start {item.Name} in {delayStart} seconds.");
+                        await Task.Delay(delayStart * 1000);
+                    }
+                    await item.Prepare();
+                });
+
+                preparationTasks.Add(preparationTask);
             }
 
-            await item.Prepare();
+            await Task.WhenAll(preparationTasks);
+            Console.WriteLine("Breakfast is served...");
         }
     }
 }
